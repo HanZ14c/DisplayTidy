@@ -1,93 +1,123 @@
 # DisplayTidy
 
-原生 macOS 菜单栏显示器布局工具：读取活动屏幕、将指定移动屏排列到所选参考屏幕四周，提供 12 种对齐方式，并记住排列关系。已提供两屏待应用示意，通过拖动吸附选择固定对齐；当前实际多屏排列预览、编号浮窗、布局收藏、任意位置拖动或自动恢复尚未实现。
+A native macOS menu bar utility for arranging displays. Choose a reference display and a display to move, select one of 12 alignments, and apply the layout. DisplayTidy remembers the last applied relationship and provides a draggable two-display preview.
 
-## 构建与运行
+Full multi-display previews, numbered screen overlays, named layouts, arbitrary positioning, and automatic layout restoration are not implemented.
 
-需要 macOS 13+ 和 Swift 6 编译器（Xcode 或 Command Line Tools），无需第三方依赖。目前构建脚本面向 Apple Silicon；Intel 构建未验证。
+## Build and run
+
+Requires macOS 13+ and a Swift 6 compiler (Xcode or Command Line Tools). No third-party dependencies are required. The build script targets Apple Silicon; Intel builds have not been verified.
 
 ```sh
 ./scripts/build.sh
 open build/DisplayTidy.app
 ```
 
-启动后点击顶部菜单栏右侧的双屏图标，打开精简操作面板；仅在后台／菜单栏运行时，Dock 不显示应用图标。面板保留扩展屏选择、图形操作和刷新入口，移除位置下拉菜单与常规排列文字；只有异常时显示错误。点击面板外部或按 Esc 收起面板，应用继续运行。
+Click the two-display menu bar icon to open the quick panel. It contains display selectors, a draggable arrangement preview, refresh, and settings. Click outside the panel or press Esc to dismiss it without quitting.
 
-应用图标采用蓝色主题，主屏参考 Studio Display，副屏为无底座的横向 iPad，两者显示区域底边对齐。源图位于 `Resources/AppIcon.png`，macOS 多尺寸图标为 `Resources/AppIcon.icns`；普通版和 Sandbox 版构建均自动包含。
+Choose **Open Main Window** for the full interface, including display dimensions, status, and an alignment menu. Both interfaces share the same selections and state. Reopening the main window reuses it and restores it if minimized. The Dock icon appears while the main window is open, remains visible when minimized, and disappears when the window closes. DisplayTidy continues running in the background. Use **Quit** or **Quit DisplayTidy** to exit; quitting is disabled while an operation is running.
 
-点击「打开主界面」打开完整窗口，查看屏幕尺寸和说明；顶部刷新与底部退出固定可见，中间内容可滚动；两个界面共用选择与状态。重复打开会复用同一主窗口。主界面打开时切换为普通应用模式并显示 Dock 图标，与菜单栏图标的显示或隐藏独立；最小化时保留 Dock 图标，重新打开主界面可恢复窗口。关闭主窗口后恢复后台模式、隐藏运行中的 Dock 图标，应用仍常驻。面板的「退出」或主界面的「退出 DisplayTidy」结束应用，操作进行时退出按钮禁用。
+The main window's **Settings** button and the panel's gear open the same settings window. **View Log** opens a separate window with live, selectable log text. Logs are kept only in memory for the current process. Closing these windows does not quit the app.
 
-主界面顶部的「设置」按钮和菜单栏面板的齿轮打开同一个设置窗口。「查看日志」打开独立日志窗口，保留实时日志与文本复制；日志仅保存在当前进程内存中。关闭任一窗口后应用继续常驻菜单栏。
+The blue app icon depicts a Studio Display and a landscape iPad with their display areas aligned along the bottom. `Resources/AppIcon.png` is the source image; `Resources/AppIcon.icns` contains the macOS icon sizes. Both build variants include it.
 
-设置中的「语言 / Language」下拉框提供 `English`、`中文`，始终使用各自语言名称。默认中文，选择后立即更新界面、应用状态、错误提示和窗口标题，并通过 UserDefaults 的 `appLanguage` 保存，下次启动恢复。设备名称保留系统原名；已有日志保留记录时的语言，新日志使用当前语言，系统返回的错误详情沿用系统语言。翻译使用 `Resources/en.lproj/Localizable.strings` 与 `Resources/zh-Hans.lproj/Localizable.strings`，构建时复制到应用资源目录。
+## Language
 
-设置新增「仅连接扩展屏时显示菜单栏图标」，默认关闭并记住用户选择。开启后，只有系统提供至少两个可用桌面屏幕时显示图标；单屏运行（包括合盖后只使用一个外接屏）时隐藏，应用继续运行。连接、断开扩展屏或切换显示模式时自动更新图标和屏幕信息，不自动移动屏幕。菜单栏场景直接观察持久化开关与活动屏幕数量；启动、激活及显示器变化通知后重新读取，连续事件合并 150 毫秒后采用最终数量。仅 LG 活动、内置屏和随航均关闭时，数量为 1，开启自动显隐即隐藏图标。图标隐藏时，再次打开 `DisplayTidy.app` 会显示主界面，可从「设置」关闭此选项。使用 SwiftUI 应用生命周期直接管理官方 `MenuBarExtra(.window)`，通过应用委托监听屏幕变化并同步可见性。保留原生设置场景，避免隐藏唯一菜单栏场景后退出应用。弹窗使用系统外部圆角和材质，不添加箭头或自定义外框；顶部按系统屏幕可用区域的上沿定位，贴合菜单栏下沿，横向位置保持系统默认。
+**English is the default language**, regardless of the system language. In Settings, use **Language** to switch between **English** and **中文**. Language names always use their native spelling. Changes immediately update interface text, status messages, errors, and window titles. The selection is saved in UserDefaults under `appLanguage` and restored on subsequent launches. Existing saved language choices are preserved; missing or unsupported choices fall back to English.
 
-菜单栏弹窗保留系统提供的背景，不叠加自定义毛玻璃。独立窗口使用 `underWindowBackground` 材质，背景延伸至透明标题栏，控件仍避开标题栏安全区域；材质随窗口焦点和系统显示设置调整，不强制处于 active 状态。设计依据为 Apple 的 [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass) 和 [窗口背景材质说明](https://developer.apple.com/documentation/appkit/nsvisualeffectview/material-swift.enum/underwindowbackground)。
+Source code uses English text as localization keys and fallback text. `Resources/en.lproj/Localizable.strings` contains the English source strings; `Resources/zh-Hans.lproj/Localizable.strings` maps those same English keys to Simplified Chinese. The build copies both tables into the app bundle and sets English as the development language. When adding interface text, use an English key and add matching entries to both tables, preserving format placeholders such as `%@`.
 
-设置中的「开机自启」使用 macOS 13+ 的 `SMAppService.mainApp` 登录项功能：开启后登录 Mac 时启动，关闭后取消注册。开关读取系统状态，不自动注册、不另存独立布尔值；等待批准时显示提示，可点击「打开系统登录项设置」，从系统设置返回应用时更新状态。开启后请保持应用所在路径稳定；当前自用构建可在项目 `build` 目录运行。
+Device names retain their system-provided spelling. Existing log entries retain the language used when recorded; new entries use the current language. Error details returned by macOS may use the system language.
 
-主界面和菜单栏均提供「参考屏幕／移动屏幕」选择。每次打开菜单栏弹窗或主界面时，自动将鼠标所在的活动屏幕选为参考；下拉菜单只列实际屏幕，仍可手动改选，打开后不会随鼠标移动或焦点切换持续修改。无法匹配鼠标屏幕时保留有效选择，否则回退到系统主屏。例如参考选 LG HDR 4K、移动选 Sidecar Display，即可让 iPad 对齐外接显示器。所有活动屏幕都可作为参考或移动目标，包括系统主屏，唯独不能选择同一块屏幕。系统主屏作为目标时，先计算所选相对位置，再整体平移坐标使原系统主屏保留在 (0, 0)；其余屏幕之间的相对位置保持不变，不更换系统主屏身份。每次打开窗口时，移动屏幕自动选中参考屏以外 ID 最小的一块，下拉菜单按 ID 排序且不含提示项；仍可手动改选，普通刷新保留有效的手动选择。若参考与目标重合或目标断开，则改选剩余屏幕；只有一块屏幕时无移动目标。拖拽区不再显示选屏提示文字。成功应用后使用原有 schemaVersion 2 保存两者 UUID，重连时恢复关系；旧数据继续兼容。
+## Arrange displays
 
-刷新会重新读取屏幕实际坐标，检查所选扩展屏当前的对齐方式，并同步图形和选项；不移动屏幕或改写保存关系。若实际位置不属于 12 种固定对齐，图形显示实际位置、菜单标为「当前位置」，不把近似位置误判为标准对齐。切换目标屏时也会检查已读取的位置。
+1. Select a **Reference** display and a display to **Move**.
+2. Drag the blue display rectangle to a candidate position. Gray outlines show the available positions, and blue highlights the current candidate. The main window also provides an alignment menu below the preview.
+3. Click the blue checkmark to **Apply Layout**.
 
-在面板中选择参考屏和移动屏，按住示意中的移动屏小框并拖动。按住时出现灰色候选框，当前候选以蓝色突出；松开后从释放位置平滑吸附到确认位置，再点击图形右下角的蓝底勾选按钮。取消拖动不会选定新位置；系统开启「减少动态效果」时直接定位。主界面仍可点击图形下方的对齐名称，从菜单精确选择。上方／下方分别支持左对齐、居中、右对齐；左侧／右侧分别支持上对齐、居中、下对齐。候选位置重合时尽量保留原对齐档位，例如相同尺寸屏幕的居中关系。
+Above and below support left, center, and right alignment. Left and right support top, center, and bottom alignment. Releasing a drag snaps the preview to the selected alignment; cancelling a drag leaves the selection unchanged. Reduce Motion disables the snap animation. When candidate positions coincide, the current alignment is preserved where possible.
 
-蓝底勾选按钮仅在待应用位置与当前实际位置不同时出现；拖回原位置或成功应用后隐藏，应用期间显示进度并禁止重复点击。
+The neutral rectangle represents the reference display; the blue rectangle represents the display to move. The preview and candidate outlines use the same scale and occupy 80% of the available width or height. Custom positions are included in the preview bounds. Other displays are not shown, but all active displays are validated before applying a layout.
 
-拖拽图不显示「主屏／扩展屏」文字，固定的中性矩形表示所选参考屏幕，蓝色矩形表示移动屏幕。屏幕与全部候选虚线框按相同比例缩放，整体范围在宽度或高度方向占操作区域的 80%；自定义实际位置较远时也会缩放纳入范围。主界面移除编号次级标题和重复说明，保留屏幕选择、当前状态和异常提示。
+The apply button appears only when the proposed position differs from the actual position. It disappears when dragged back or after a successful application, and shows progress while applying. Selecting an alignment changes only the preview until you apply it.
 
-选择只更新待应用示意，不移动屏幕；示意不显示其他屏幕，提交前仍会验证所有屏幕，拒绝重叠或不连通的布局。每次读取当前尺寸并重新计算；居中偏移先取整再加参考坐标，避免整体平移后出现 1 像素偏差。成功应用后保存屏幕 UUID 和对齐关系。重启后恢复上次选择，只有手动点击应用才移动屏幕。连接随航需要自己先在系统中完成；工具不负责建立连接。配置使用 `.forSession`，收起面板或退出应用不会主动还原。
+Each time the panel or main window opens, the active display under the pointer becomes the reference. If it cannot be identified, a valid existing selection is retained, otherwise the system primary display is used. The display with the lowest remaining ID is selected as the target. You can change either selection manually; pointer movement and focus changes do not keep changing it afterward. Ordinary refreshes preserve valid manual selections.
 
-命令行入口使用同一份系统 API 代码：
+Any active display, including the system primary display, can be the reference or target, but the two must be different. When moving the primary display, all coordinates are rebased so it remains at `(0, 0)` without changing its primary identity or the relative positions of the other displays. If the target disconnects or matches the reference, another display is selected by lowest ID. With only one display, there is no target.
+
+**Refresh Displays** reads actual coordinates and updates the preview without moving displays or changing the saved relationship. Positions that do not match a preset are shown as **Current Position**. Switching targets also checks the last-read position.
+
+Every application recalculates coordinates from current display dimensions. Center offsets are rounded before adding the reference coordinates to avoid one-pixel differences after rebasing. A successful application saves both display UUIDs and the alignment relationship. Restarting restores the selection, but moving displays always requires manual application. Connect Sidecar through macOS first; DisplayTidy does not establish the connection. Layouts use `.forSession`; closing the panel or quitting does not actively restore the previous layout.
+
+## Settings
+
+### Menu bar icon visibility
+
+**Show menu icon only with multiple displays** is off by default and remembers your choice. When enabled, the icon is shown only when macOS reports at least two available desktop displays. A single external display with the laptop lid closed still counts as one. The app continues running when the icon is hidden; reopen `DisplayTidy.app` to access the main window and settings.
+
+Startup, activation, and display-change notifications refresh display information and icon visibility without automatically moving displays. Consecutive display events are coalesced over 150 milliseconds. The app uses SwiftUI's native `MenuBarExtra(.window)` and retains a standard Settings scene so hiding the menu bar item does not quit it.
+
+The panel uses the system background and rounded corners without a custom arrow or outer frame. Its top edge is positioned at the screen's available upper boundary; horizontal placement remains system-controlled. Separate windows use `underWindowBackground` material extending into the transparent title bar, while controls respect the title bar safe area. Material appearance follows window focus and system settings. See Apple's [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass) and [window background material documentation](https://developer.apple.com/documentation/appkit/nsvisualeffectview/material-swift.enum/underwindowbackground).
+
+### Launch at login
+
+**Launch at Login** uses macOS 13+ `SMAppService.mainApp`. Enabling it registers the app; disabling it unregisters it. The switch reads the system state rather than a separately stored Boolean. Pending approval is shown with an **Open Login Items Settings** button, and the state refreshes when the app becomes active again.
+
+Keep the app at a stable path after enabling this option. Local builds can run from the project's `build` directory. The app does not register automatically.
+
+### Hide notch (experimental)
+
+This option is off by default and is saved under `hideNotch`. It adds a black background window at the top of a built-in display with a notch, without changing wallpaper, resolution, or system menu bar settings. External displays are unaffected. The overlay does not take focus or intercept clicks and is removed when disabled or when the app exits. It works independently of menu bar icon visibility.
+
+The background is rebuilt when screen parameters change, Spaces switch, or the Mac wakes, using the screen's top safe area for placement and height. This is an overlay prototype: the system menu bar background may cover it, and macOS may not switch menu text to white. Light/dark appearance, full screen, auto-hiding menu bars, dynamic wallpapers, and sleep/wake behavior have not been verified on real hardware. Turn the option off if the result looks incorrect. Lock and login screens are unsupported.
+
+## Command line
+
+The command-line interface uses the same display APIs as the app:
 
 ```sh
 build/DisplayTidy.app/Contents/MacOS/DisplayTidy --self-test
 build/DisplayTidy.app/Contents/MacOS/DisplayTidy --list
-# 使用 --list 输出中的当前非主屏 ID，不要照抄旧 ID。
+# Use a current non-primary display ID from --list, not an old saved ID.
 build/DisplayTidy.app/Contents/MacOS/DisplayTidy --move-below-center DISPLAY_ID
 build/DisplayTidy.app/Contents/MacOS/DisplayTidy --move-below-left DISPLAY_ID
 build/DisplayTidy.app/Contents/MacOS/DisplayTidy --move-below-right DISPLAY_ID
 ```
 
-命令行需在本机图形登录会话内运行。Codex 工具执行沙箱曾返回零块显示器；在本机登录会话运行成功，这与下述 App Sandbox 是两种不同限制。
+Run display commands inside a local graphical login session. Restricted command execution has previously reported zero displays even when the same command worked in the local login session. This restriction is separate from App Sandbox below.
 
-## 隐藏刘海（实验性）
+## Persistence and limitations
 
-设置中的「隐藏刘海（实验性）」开关默认关闭，使用 UserDefaults 的 `hideNotch` 保存选择。开启后只在带刘海的内建屏幕顶部添加纯黑背景窗口，不修改壁纸、分辨率或系统菜单栏设置；外接屏幕不受影响。黑条不抢焦点、不拦截点击，关闭开关或退出应用即移除，与菜单栏图标是否显示独立。
+- Successful applications atomically save the target UUID, reference UUID, direction, and alignment to `~/Library/Application Support/local.DisplayTidy/arrangement.json`. Historical coordinates and dimensions are not saved.
+- New layouts use schema version 2. Legacy below-display arrangements remain readable and are upgraded only after a successful application, not on startup.
+- Only the last successful relationship is saved; multiple named layouts are not supported. Current dimensions are used each time.
+- Missing or duplicate UUIDs, mirroring, overlap, and disconnected layouts prevent application. Displays must share an edge of at least one desktop coordinate unit; corner contact is insufficient.
+- Reconnected displays are matched by UUID. If the reference disconnects, selection falls back to the system primary display. If the target disconnects or becomes the reference, the lowest-ID alternative is selected, or cleared if none exists. A target becoming primary remains selectable. Selection changes never move displays automatically.
+- Actual coordinates are reread after submission. Failures show an error without automatic retries. Three-display moves that would overlap or disconnect the layout are rejected; the app does not rearrange other displays to compensate.
+- Corrupt or unsupported arrangement files are preserved and reported instead of being overwritten during loading.
+- Legacy `recovery.json` and `RecoveryArchive` data are preserved but no longer read or used to block operations. Recovery/archive buttons and `--restore` have been removed.
+- Builds use local ad-hoc signing for the development device. Developer ID signing, notarization, public distribution, and real macOS 13 operation have not been verified. Signing is verified in a temporary directory before copying the build output; file-provider metadata added afterward can invalidate the generated app's signature.
 
-屏幕参数变化、切换桌面与唤醒时重建背景，按屏幕顶部安全区域计算位置和高度。当前为覆盖层原型：系统菜单栏背景可能遮住黑条，系统也不一定自动切换为白色文字。尚未验证真实屏幕上的浅色／深色模式、全屏、自动隐藏菜单栏、动态壁纸及睡眠唤醒效果；若效果不正确，请关闭此选项。锁屏和登录界面不在支持范围内。
-
-## 保存与限制
-
-- 成功应用后，将目标 UUID、参考屏幕 UUID、方向和对齐方式原子保存至 `~/Library/Application Support/local.DisplayTidy/arrangement.json`；不保存历史坐标或尺寸。
-- 新排列数据使用 schemaVersion 2，读取旧下侧排列时自动兼容；只有成功应用后才写入新格式，不因启动而改写旧文件。
-- 每次应用按当前尺寸计算，因此尺寸变化不再触发旧快照阻塞。界面只记住最后一次成功应用的关系，尚未支持多个命名布局。
-- UUID 缺失或重复、镜像模式、非法重叠或不连通会阻止应用。重连后按 UUID 选回参考屏和移动屏；参考屏断开时回到系统主屏；目标断开或与参考相同时自动改选 ID 最小的其他屏幕，没有其他屏幕时才清空；目标成为系统主屏时仍保留选择。所有选择变化都需要手动应用才会移动屏幕。
-- 提交后重新读取确认实际位置；失败时显示原因，不自动重试。旧 `recovery.json` 和 `RecoveryArchive` 原样保留，不再读取或阻塞操作；恢复与归档按钮、`--restore` 入口已移除。
-- 排列文件损坏或版本不支持时保留原文件并显示错误，不直接覆盖。
-- 已监听系统屏幕参数变化，更新图标可见性并刷新屏幕信息；仍可手动刷新，不自动恢复排列。三屏移动若造成重叠或不连通会拒绝，不能自动调整其他屏幕。
-- 本地 ad-hoc 签名，仅用于当前开发设备。未验证 Developer ID、公证、公开分发和 macOS 13 的真实运行。若文件提供器后来给 `.app` 添加 Finder 元数据导致签名校验失败，这属于生成目录的元数据问题；脚本在临时目录完成签名校验后复制生成产物。
-
-## App Sandbox 对照构建
+## App Sandbox comparison build
 
 ```sh
 ./scripts/build.sh --sandbox
 open build/DisplayTidy-Sandbox.app
 ```
 
-此构建仅增加 `com.apple.security.app-sandbox` entitlement，没有辅助功能、录屏或管理员权限请求代码。排列关系写入该 bundle 的容器 Application Support；两个版本的设置独立。macOS 是否要求权限以实际运行结果为准；实际兼容性仍需在目标系统验证。
+This variant adds only the `com.apple.security.app-sandbox` entitlement. It contains no Accessibility, Screen Recording, or administrator permission request code. Layout data is stored in the bundle's container Application Support directory, and settings are independent of the regular app. Actual permission requirements depend on macOS behavior and must be verified on the target system.
 
-## 本地文件位置
 
-持续更新同一个 `build/DisplayTidy.app`，应用名称和 bundle identifier 不随开发阶段变化。M0、M1 等编号仅用于开发与历史验证文档。
+## Local files
 
-- `Sources/`、`Resources/`、`scripts/`：源代码、中英文翻译和构建脚本。
-- `build/DisplayTidy.app`：日常使用的应用；`build/DisplayTidy-Sandbox.app`：可选的隔离环境对照构建，不是另一个开发阶段。
-- `.build/module-cache/`：编译缓存，可重新生成。
-- `~/Library/Application Support/local.DisplayTidy/`：普通版数据，当前读取 `arrangement.json`；历史 `recovery.json` 和 `RecoveryArchive/` 保留，不参与操作。原普通版目录已在本机迁移，保留全部文件。
-- `~/Library/Containers/local.DisplayTidy-Sandbox/`：运行新的 Sandbox 版后由 macOS 管理的容器，设置与普通版独立。旧 `local.DisplayTidyM0-Sandbox` 容器保留历史数据，不再用于新构建。
-- `~/Library/Preferences/local.DisplayTidy.plist`：菜单栏图标显示选项等偏好由 UserDefaults 保存；旧 `local.DisplayTidyM0.plist` 保留，不用于新应用，排列设置以 Application Support 中的 JSON 为准。
-- 构建时使用 `/private/tmp/DisplayTidy-build.*` 临时目录，脚本退出时自动清理。
+Development builds update `build/DisplayTidy.app` using the same app name and bundle identifier.
 
-当前未安装到 `/Applications` 或 `~/Applications`；自启由用户在设置中开启。普通版、Sandbox 版构建与自检通过，临时独立测试应用的系统注册／取消注册检查通过；实际注销后重新登录的启动、新版 Sandbox 的真实自启仍未验证。
+- `Sources/`, `Resources/`, `scripts/`: source code, English/Chinese localization and icons, and build scripts.
+- `build/DisplayTidy.app`: the regular app. `build/DisplayTidy-Sandbox.app`: the optional sandbox comparison build.
+- `.build/module-cache/`: regenerable compiler cache.
+- `~/Library/Application Support/local.DisplayTidy/`: regular app data. Only `arrangement.json` is currently read; legacy recovery files remain untouched.
+- `~/Library/Containers/local.DisplayTidy-Sandbox/`: the macOS-managed sandbox container. The old `local.DisplayTidyM0-Sandbox` container retains historical data but is not used by new builds.
+- `~/Library/Preferences/local.DisplayTidy.plist`: UserDefaults preferences, including language and icon visibility. The old `local.DisplayTidyM0.plist` is retained but unused. Arrangement data lives in Application Support.
+- `/private/tmp/DisplayTidy-build.*`: temporary build staging directories, removed when the build script exits.
+
+The build script does not install the app into `/Applications` or `~/Applications`. Enable launch at login in Settings. Startup after a real logout/login and launch at login for the sandbox build remain unverified.

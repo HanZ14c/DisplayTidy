@@ -66,19 +66,19 @@ struct MainView: View {
             HStack {
                 Text("DisplayTidy").font(.title).bold()
                 Spacer()
-                Button(L("刷新屏幕")) { manager.refresh() }.buttonStyle(.bordered).disabled(manager.busy)
-                Button(L("设置"), action: openSettings).buttonStyle(.bordered)
+                Button(L("Refresh Displays")) { manager.refresh() }.buttonStyle(.bordered).disabled(manager.busy)
+                Button(L("Settings"), action: openSettings).buttonStyle(.bordered)
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     GroupBox {
                         VStack(alignment: .leading, spacing: 14) {
-                            Picker(L("参考屏幕"), selection: $manager.reference) {
+                            Picker(L("Reference"), selection: $manager.reference) {
                                 ForEach(manager.displays) { d in
                                     Text("\(d.name) · \(d.width) × \(d.height)").tag(d.id)
                                 }
                             }
-                            Picker(L("移动屏幕"), selection: $manager.target) {
+                            Picker(L("Move"), selection: $manager.target) {
                                 ForEach(manager.displays.filter { $0.id != manager.reference }.sorted { $0.id < $1.id }) { d in
                                     Text("\(d.name) · \(d.width) × \(d.height)").tag(d.id)
                                 }
@@ -93,7 +93,7 @@ struct MainView: View {
             Divider()
             HStack {
                 Spacer()
-                Button(L("退出 DisplayTidy")) { NSApp.terminate(nil) }
+                Button(L("Quit DisplayTidy")) { NSApp.terminate(nil) }
                     .buttonStyle(.bordered).disabled(manager.busy)
             }
         }.padding(20).frame(minWidth: 600, minHeight: 560)
@@ -112,18 +112,18 @@ struct QuickPanel: View {
                 Text("DisplayTidy").font(.headline)
                 Spacer()
                 Button(action: openSettings) { Image(systemName: "gearshape") }
-                    .help(L("设置")).accessibilityLabel(L("设置"))
+                    .help(L("Settings")).accessibilityLabel(L("Settings"))
                 Button { manager.refresh() } label: {
                     Image(systemName: "arrow.clockwise")
-                }.help(L("刷新屏幕")).accessibilityLabel(L("刷新屏幕"))
+                }.help(L("Refresh Displays")).accessibilityLabel(L("Refresh Displays"))
                     .disabled(manager.busy)
             }
-            Picker(L("参考屏幕"), selection: $manager.reference) {
+            Picker(L("Reference"), selection: $manager.reference) {
                 ForEach(manager.displays) { display in
                     Text(display.name).tag(display.id)
                 }
             }.disabled(manager.busy)
-            Picker(L("移动屏幕"), selection: $manager.target) {
+            Picker(L("Move"), selection: $manager.target) {
                 ForEach(manager.displays.filter { $0.id != manager.reference }.sorted { $0.id < $1.id }) { display in
                     Text(display.name).tag(display.id)
                 }
@@ -135,9 +135,9 @@ struct QuickPanel: View {
             }
             Divider()
             HStack {
-                Button(L("打开主界面"), action: openMainWindow)
+                Button(L("Open Main Window"), action: openMainWindow)
                 Spacer()
-                Button(L("退出")) { NSApp.terminate(nil) }.disabled(manager.busy)
+                Button(L("Quit")) { NSApp.terminate(nil) }.disabled(manager.busy)
             }
         }.padding(12).frame(width: 268)
             .background(MenuBarTopAnchor(onOpen: { manager.selectReferenceAtPointer() }))
@@ -155,8 +155,8 @@ final class AppWindows: NSObject, ObservableObject, NSWindowDelegate {
     override init() {
         super.init()
         languageChanges = settings.$language.sink { [weak self] language in
-            self?.settingsWindow?.title = L("DisplayTidy 设置", language: language)
-            self?.logWindow?.title = L("DisplayTidy 日志", language: language)
+            self?.settingsWindow?.title = L("DisplayTidy Settings", language: language)
+            self?.logWindow?.title = L("DisplayTidy Log", language: language)
         }
     }
 
@@ -180,13 +180,13 @@ final class AppWindows: NSObject, ObservableObject, NSWindowDelegate {
         // Only dismiss the menu panel; keep the main window visible.
         if NSApp.keyWindow?.title.isEmpty == true { NSApp.keyWindow?.orderOut(nil) }
         settings.refresh()
-        show(&settingsWindow, title: "DisplayTidy 设置", size: NSSize(width: 420, height: 380),
+        show(&settingsWindow, title: "DisplayTidy Settings", size: NSSize(width: 420, height: 380),
              content: SettingsView(settings: settings, openLog: { self.openLog(manager: manager) }))
         settingsWindow?.contentMinSize = NSSize(width: 360, height: 260)
     }
 
     func openLog(manager: DisplayManager) {
-        show(&logWindow, title: "DisplayTidy 日志", size: NSSize(width: 760, height: 480), content: LogView(manager: manager))
+        show(&logWindow, title: "DisplayTidy Log", size: NSSize(width: 760, height: 480), content: LogView(manager: manager))
         logWindow?.contentMinSize = NSSize(width: 600, height: 360)
     }
 
@@ -290,7 +290,7 @@ struct Entry {
                 print(String(decoding: try encoder.encode(DisplayReport(displays: displays)), as: UTF8.self))
             default:
                 guard args.count == 2, ["--move-below-center", "--move-below-left", "--move-below-right"].contains(args[0]), let id = UInt32(args[1]) else {
-                    throw PrototypeError("用法：--list | --self-test | --move-below-center DISPLAY_ID | --move-below-left DISPLAY_ID | --move-below-right DISPLAY_ID；无参数启动菜单栏应用。")
+                    throw PrototypeError("Usage: --list | --self-test | --move-below-center DISPLAY_ID | --move-below-left DISPLAY_ID | --move-below-right DISPLAY_ID; run without arguments to start the menu bar app.")
                 }
                 try await DisplayManager().move(id, alignment: args[0] == "--move-below-left" ? .start : (args[0] == "--move-below-right" ? .end : .center))
             }

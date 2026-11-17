@@ -8,7 +8,7 @@ enum AppLanguage: String, CaseIterable {
     var name: String { self == .english ? "English" : "中文" }
     var locale: Locale { Locale(identifier: rawValue) }
     static var current: AppLanguage {
-        AppLanguage(rawValue: UserDefaults.standard.string(forKey: "appLanguage") ?? "") ?? .chinese
+        AppLanguage(rawValue: UserDefaults.standard.string(forKey: "appLanguage") ?? "") ?? .english
     }
     var bundle: Bundle {
         Bundle.main.path(forResource: rawValue, ofType: "lproj").flatMap(Bundle.init(path:)) ?? .main
@@ -59,6 +59,9 @@ func runLocalizationSelfChecks() throws {
             throw PrototypeError("Missing localization table: \(language.rawValue)")
         }
         for (key, value) in table {
+            guard language != .english || key == value else {
+                throw PrototypeError("English source text must match its localization key: \(key)")
+            }
             guard key.components(separatedBy: "%@").count == value.components(separatedBy: "%@").count else {
                 throw PrototypeError("Translation format mismatch: \(key)")
             }
@@ -69,25 +72,33 @@ func runLocalizationSelfChecks() throws {
     guard AppLanguage.allCases.map(\.name) == ["English", "中文"] else {
         throw PrototypeError("Language names must use their native spelling.")
     }
-    let example = AppMessage("当前排列：%@ · %@", AppMessage("下方"), AppMessage("居中"))
+    let example = AppMessage("Current layout: %@ · %@", AppMessage("Below"), AppMessage("Center"))
     guard example.text(in: .english) == "Current layout: Below · Center",
           example.text(in: .chinese) == "当前排列：下方 · 居中",
-          AppMessage("应用失败：%@", AppMessage("没有活动显示器。")).text(in: .english)
+          AppMessage("Could not apply layout: %@", AppMessage("No active displays.")).text(in: .english)
             == "Could not apply layout: No active displays.",
           AppMessage(verbatim: "LG HDR 4K").text(in: .chinese) == "LG HDR 4K" else {
         throw PrototypeError("Localization resources or nested messages failed.")
     }
     let original = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
     defer { UserDefaults.standard.setVolatileDomain(original, forName: UserDefaults.argumentDomain) }
+    for value in ["", "unsupported"] {
+        var preferences = original
+        preferences["appLanguage"] = value
+        UserDefaults.standard.setVolatileDomain(preferences, forName: UserDefaults.argumentDomain)
+        guard AppLanguage.current == .english, SettingsManager().language == .english else {
+            throw PrototypeError("Missing or unsupported language must default to English.")
+        }
+    }
     for language in AppLanguage.allCases {
         var preferences = original
         preferences["appLanguage"] = language.rawValue
         UserDefaults.standard.setVolatileDomain(preferences, forName: UserDefaults.argumentDomain)
         guard AppLanguage.current == language, SettingsManager().language == language,
               example.text() == example.text(in: language),
-              L("设置") == (language == .english ? "Settings" : "设置") else {
+              L("Settings") == (language == .english ? "Settings" : "设置") else {
             throw PrototypeError("Language selection or live message translation failed.")
         }
     }
-    print("PASS: native language names, bundled translations, nested messages and unchanged display names")
+    print("PASS: English default and source keys, language switching, bundled translations, nested messages and unchanged display names")
 }

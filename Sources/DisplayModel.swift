@@ -34,10 +34,10 @@ enum DisplayDirection: String, Codable, CaseIterable {
     var title: String { L(localizationKey) }
     var localizationKey: String {
         switch self {
-        case .above: return "上方"
-        case .below: return "下方"
-        case .left: return "左侧"
-        case .right: return "右侧"
+        case .above: return "Above"
+        case .below: return "Below"
+        case .left: return "Left"
+        case .right: return "Right"
         }
     }
 }
@@ -49,9 +49,9 @@ enum EdgeAlignment: String, Codable, CaseIterable {
     }
     func localizationKey(for direction: DisplayDirection) -> String {
         switch self {
-        case .start: return direction.horizontal ? "上对齐" : "左对齐"
-        case .center: return "居中"
-        case .end: return direction.horizontal ? "下对齐" : "右对齐"
+        case .start: return direction.horizontal ? "Align Top" : "Align Left"
+        case .center: return "Center"
+        case .end: return direction.horizontal ? "Align Bottom" : "Align Right"
         }
     }
 }
@@ -72,7 +72,7 @@ struct AlignmentOption: Equatable, Identifiable {
 }
 
 func nearestAlignment(_ target: Display, relativeTo reference: Display, x: Double, y: Double, preferred: AlignmentOption? = nil) throws -> AlignmentOption {
-    guard x.isFinite, y.isFinite else { throw PrototypeError("拖动位置无效。") }
+    guard x.isFinite, y.isFinite else { throw PrototypeError("Invalid drag position.") }
     var nearest = AlignmentOption.all[0]
     var distance = Double.infinity
     for option in AlignmentOption.all {
@@ -106,16 +106,16 @@ struct Arrangement: Codable, Equatable {
               current.filter({ $0.uuid == referenceUUID }).count == 1,
               let reference = current.first(where: { $0.uuid == referenceUUID }),
               let target = current.first(where: { $0.uuid == targetUUID }) else {
-            throw PrototypeError("参考屏或移动屏未连接、身份不明确，请重新选择屏幕并应用。")
+            throw PrototypeError("The reference or target display is disconnected or ambiguous. Select the displays again and apply.")
         }
         var result = current
         result[result.firstIndex(where: { $0.id == target.id })!] = try alignedDisplay(target, relativeTo: reference, direction: direction, alignment: alignment)
-        guard let primary = result.first(where: \.main) else { throw PrototypeError("未找到系统主屏。") }
+        guard let primary = result.first(where: \.main) else { throw PrototypeError("No primary display was found.") }
         // Quartz keeps the primary at (0, 0); rebasing preserves every pairwise offset.
         result = try result.map { display in
             guard let x = Int32(exactly: Int64(display.x) - Int64(primary.x)),
                   let y = Int32(exactly: Int64(display.y) - Int64(primary.y)) else {
-                throw PrototypeError("调整主屏基准后的坐标超出 Int32 范围。")
+                throw PrototypeError("Rebased display coordinates exceed the Int32 range.")
             }
             var shifted = display
             shifted.x = x; shifted.y = y
@@ -134,7 +134,7 @@ extension Arrangement {
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         let version = try values.decode(Int.self, forKey: .schemaVersion)
-        guard version == 1 || version == 2 else { throw PrototypeError("不支持的排列版本。") }
+        guard version == 1 || version == 2 else { throw PrototypeError("Unsupported layout version.") }
         targetUUID = try values.decode(String.self, forKey: .targetUUID)
         referenceUUID = try values.decode(String.self, forKey: .referenceUUID)
         if version == 1 {
@@ -143,7 +143,7 @@ extension Arrangement {
             case "left": alignment = .start
             case "center": alignment = .center
             case "right": alignment = .end
-            default: throw PrototypeError("旧排列的对齐方式无效。")
+            default: throw PrototypeError("The legacy layout has an invalid alignment.")
             }
         } else {
             direction = try values.decode(DisplayDirection.self, forKey: .direction)
@@ -176,7 +176,7 @@ func alignedDisplay(_ target: Display, relativeTo reference: Display, direction:
     }
     guard let originX = Int32(exactly: x.rounded(.toNearestOrAwayFromZero)),
           let originY = Int32(exactly: y.rounded(.toNearestOrAwayFromZero)) else {
-        throw PrototypeError("计算坐标超出 Int32 范围。")
+        throw PrototypeError("Calculated coordinates exceed the Int32 range.")
     }
     result.x = originX; result.y = originY
     return result
@@ -185,12 +185,12 @@ func alignedDisplay(_ target: Display, relativeTo reference: Display, direction:
 func validate(_ displays: [Display]) throws {
     guard !displays.isEmpty, Set(displays.map(\.id)).count == displays.count,
           displays.allSatisfy({ $0.width > 0 && $0.height > 0 }) else {
-        throw PrototypeError("屏幕集合为空、ID 重复或尺寸无效。")
+        throw PrototypeError("The display list is empty, IDs are duplicated, or sizes are invalid.")
     }
-    guard !displays.contains(where: \.mirrored) else { throw PrototypeError("镜像模式不能独立排列。") }
+    guard !displays.contains(where: \.mirrored) else { throw PrototypeError("Mirrored displays cannot be arranged independently.") }
     let mains = displays.filter(\.main)
     guard mains.count == 1, mains[0].x == 0, mains[0].y == 0 else {
-        throw PrototypeError("必须保留唯一主屏，原点为 (0, 0)。")
+        throw PrototypeError("There must be exactly one primary display at (0, 0).")
     }
     var edges = Array(repeating: [Int](), count: displays.count)
     for i in displays.indices {
@@ -198,7 +198,7 @@ func validate(_ displays: [Display]) throws {
             let a = displays[i], b = displays[j]
             let horizontal = min(Int64(a.x) + Int64(a.width), Int64(b.x) + Int64(b.width)) - max(Int64(a.x), Int64(b.x))
             let vertical = min(Int64(a.y) + Int64(a.height), Int64(b.y) + Int64(b.height)) - max(Int64(a.y), Int64(b.y))
-            if horizontal > 0 && vertical > 0 { throw PrototypeError("屏幕 %@ 与 %@ 重叠。", AppMessage(verbatim: String(a.id)), AppMessage(verbatim: String(b.id))) }
+            if horizontal > 0 && vertical > 0 { throw PrototypeError("Displays %@ and %@ overlap.", AppMessage(verbatim: String(a.id)), AppMessage(verbatim: String(b.id))) }
             if (horizontal == 0 && vertical >= 1) || (vertical == 0 && horizontal >= 1) {
                 edges[i].append(j); edges[j].append(i)
             }
@@ -208,7 +208,7 @@ func validate(_ displays: [Display]) throws {
     while let i = pending.popLast() {
         for j in edges[i] where visited.insert(j).inserted { pending.append(j) }
     }
-    guard visited.count == displays.count else { throw PrototypeError("布局不连通；角点接触不算连接，需共享至少 1 个桌面坐标单位的边缘。") }
+    guard visited.count == displays.count else { throw PrototypeError("The layout is disconnected. Displays must share an edge of at least one desktop coordinate unit; corner contact is not sufficient.") }
 }
 
 func runSelfChecks() throws {

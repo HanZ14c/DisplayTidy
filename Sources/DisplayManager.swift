@@ -21,7 +21,7 @@ final class DisplayManager: ObservableObject {
     @Published var target: UInt32 = 0 { didSet { if target != oldValue { syncCurrentAlignment() } } }
     @Published var selection = AlignmentOption(direction: .below, alignment: .center) { didSet { showingActualPosition = false } }
     @Published var showingActualPosition = false
-    @Published var status: AppMessage = "选择参考屏幕、移动屏幕和对齐方式，然后应用。"
+    @Published var status: AppMessage = "Choose a reference display, a display to move, and an alignment, then apply."
     @Published var errorMessage: AppMessage?
     @Published var saved: Arrangement?
     let arrangementURL: URL
@@ -46,9 +46,9 @@ final class DisplayManager: ObservableObject {
             do {
                 let value = try JSONDecoder().decode(Arrangement.self, from: Data(contentsOf: arrangementURL))
                 saved = value; selection = AlignmentOption(direction: value.direction, alignment: value.alignment)
-                status = "已载入上次的排列；点击应用才会移动屏幕。"
+                status = "Previous layout loaded. Displays move only when you apply it."
             } catch {
-                storageError = AppMessage("排列文件无法读取，原文件已保留：%@", AppMessage(error: error))
+                storageError = AppMessage("Could not read the saved layout. The original file has been preserved: %@", AppMessage(error: error))
                 status = storageError!
                 errorMessage = storageError
             }
@@ -56,7 +56,7 @@ final class DisplayManager: ObservableObject {
     }
 
     func report(_ error: Error) {
-        status = AppMessage("应用失败：%@", AppMessage(error: error))
+        status = AppMessage("Could not apply layout: %@", AppMessage(error: error))
         errorMessage = status
         note(status.text())
     }
@@ -74,7 +74,7 @@ final class DisplayManager: ObservableObject {
     func read() throws -> [Display] {
         var count: UInt32 = 0
         try check(CGGetActiveDisplayList(0, nil, &count), "CGGetActiveDisplayList/count")
-        guard count > 0 else { throw PrototypeError("没有活动显示器。") }
+        guard count > 0 else { throw PrototypeError("No active displays.") }
         var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
         try check(CGGetActiveDisplayList(count, &ids, &count), "CGGetActiveDisplayList/list")
         let names = Dictionary(NSScreen.screens.compactMap { screen -> (UInt32, String)? in
@@ -85,7 +85,7 @@ final class DisplayManager: ObservableObject {
             let bounds = CGDisplayBounds(id)
             let values = [bounds.minX, bounds.minY, bounds.width, bounds.height]
             guard values.allSatisfy({ $0.isFinite && $0 >= CGFloat(Int32.min) && $0 <= CGFloat(Int32.max) && $0.rounded() == $0 }) else {
-                throw PrototypeError("屏幕 %@ 的 bounds 无效或不是整数。", AppMessage(verbatim: String(id)))
+                throw PrototypeError("Display %@ has invalid or non-integer bounds.", AppMessage(verbatim: String(id)))
             }
             let uuid = CGDisplayCreateUUIDFromDisplayID(id).map { CFUUIDCreateString(nil, $0.takeRetainedValue()) as String }
             return Display(id: id, uuid: uuid, name: names[id] ?? "Display \(id)", vendor: CGDisplayVendorNumber(id), model: CGDisplayModelNumber(id), serial: CGDisplaySerialNumber(id), main: CGDisplayIsMain(id) != 0, mirrored: CGDisplayIsInMirrorSet(id) != 0, x: Int32(bounds.minX), y: Int32(bounds.minY), width: Int32(bounds.width), height: Int32(bounds.height))
@@ -101,7 +101,7 @@ final class DisplayManager: ObservableObject {
             for d in displays {
                 note("ID=\(d.id) \(d.name) main=\(d.main) bounds=(\(d.x),\(d.y),\(d.width),\(d.height)) UUID=\(d.uuid ?? "missing")")
             }
-        } catch { status = AppMessage("读取失败：%@", AppMessage(error: error)); errorMessage = status; note(status.text()) }
+        } catch { status = AppMessage("Could not read displays: %@", AppMessage(error: error)); errorMessage = status; note(status.text()) }
     }
 
     func reconcileSelections() {
@@ -142,26 +142,26 @@ final class DisplayManager: ObservableObject {
         guard let main = displays.first(where: { $0.id == reference }),
               let target = displays.first(where: { $0.id == self.target && $0.id != reference }) else {
             showingActualPosition = false
-            status = storageError ?? "请选择不同的参考屏幕和移动屏幕。"
+            status = storageError ?? "Choose two different displays for reference and movement."
             return
         }
         do {
             if let option = try matchingAlignment(target, relativeTo: main,
                     preferred: selection) {
                 selection = option
-                status = storageError ?? AppMessage("当前排列：%@ · %@", AppMessage(option.direction.localizationKey), AppMessage(option.alignment.localizationKey(for: option.direction)))
+                status = storageError ?? AppMessage("Current layout: %@ · %@", AppMessage(option.direction.localizationKey), AppMessage(option.alignment.localizationKey(for: option.direction)))
             } else {
                 showingActualPosition = true
                 status = storageError ?? (target.mirrored || main.mirrored
-                    ? "当前为镜像模式，不能独立排列。"
-                    : "当前为自定义位置；拖动选择对齐后再应用。")
+                    ? "Mirroring is enabled. These displays cannot be arranged independently."
+                    : "Current position is custom. Drag to choose an alignment, then apply.")
                 if target.mirrored || main.mirrored { errorMessage = status }
             }
-        } catch { showingActualPosition = true; status = AppMessage("对齐检查失败：%@", AppMessage(error: error)); errorMessage = status }
+        } catch { showingActualPosition = true; status = AppMessage("Could not check alignment: %@", AppMessage(error: error)); errorMessage = status }
     }
 
     func move(_ id: UInt32, relativeTo referenceID: UInt32? = nil, direction: DisplayDirection = .below, alignment: EdgeAlignment = .center) async throws {
-        guard !busy else { throw PrototypeError("正在应用，请稍候。") }
+        guard !busy else { throw PrototypeError("Applying layout. Please wait.") }
         busy = true; defer { busy = false }
         if let storageError { throw PrototypeError(message: storageError) }
         errorMessage = nil
@@ -169,36 +169,36 @@ final class DisplayManager: ObservableObject {
         let referenceID = referenceID ?? current.first(where: \.main)?.id
         guard let main = current.first(where: { $0.id == referenceID }), let mainUUID = main.uuid,
               let target = current.first(where: { $0.id == id && $0.id != referenceID }), let targetUUID = target.uuid else {
-            throw PrototypeError("请选择不同的活动参考屏和移动屏，两者必须有可识别的 UUID。")
+            throw PrototypeError("Choose two different active displays. Both must have identifiable UUIDs.")
         }
         let relation = Arrangement(targetUUID: targetUUID, referenceUUID: mainUUID, direction: direction, alignment: alignment)
         let desired = try relation.layout(for: current)
-        status = AppMessage("正在应用%@ · %@…", AppMessage(direction.localizationKey), AppMessage(alignment.localizationKey(for: direction)))
+        status = AppMessage("Applying %@ · %@…", AppMessage(direction.localizationKey), AppMessage(alignment.localizationKey(for: direction)))
         try await submit(desired, expected: current)
         try FileManager.default.createDirectory(at: arrangementURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         do { try encoder.encode(relation).write(to: arrangementURL, options: .atomic) }
-        catch { throw PrototypeError("屏幕已对齐，但未能保存排列：%@", AppMessage(error: error)) }
+        catch { throw PrototypeError("Displays are aligned, but the layout could not be saved: %@", AppMessage(error: error)) }
         saved = relation
         selection = AlignmentOption(direction: direction, alignment: alignment)
-        status = AppMessage("已应用并记住：%@ → %@ %@ · %@", AppMessage(verbatim: target.name), AppMessage(verbatim: main.name), AppMessage(direction.localizationKey), AppMessage(alignment.localizationKey(for: direction)))
+        status = AppMessage("Applied and saved: %@ → %@ %@ · %@", AppMessage(verbatim: target.name), AppMessage(verbatim: main.name), AppMessage(direction.localizationKey), AppMessage(alignment.localizationKey(for: direction)))
         note(status.text())
     }
 
     func submit(_ desired: [Display], expected: [Display]) async throws {
         try validate(desired)
-        guard try read() == expected else { throw PrototypeError("提交前屏幕状态改变，请刷新后重试。") }
+        guard try read() == expected else { throw PrototypeError("The displays changed before submission. Refresh and try again.") }
         var config: CGDisplayConfigRef?
         try check(CGBeginDisplayConfiguration(&config), "CGBeginDisplayConfiguration")
         var completed = false
         defer {
             if !completed {
                 let error = CGCancelDisplayConfiguration(config)
-                note(AppMessage("取消事务：CGError %@", AppMessage(verbatim: String(error.rawValue))).text())
+                note(AppMessage("Cancelled configuration: CGError %@", AppMessage(verbatim: String(error.rawValue))).text())
             }
         }
         for d in desired {
-            note(AppMessage("请求 ID=%@ origin=(%@,%@)", AppMessage(verbatim: String(d.id)), AppMessage(verbatim: String(d.x)), AppMessage(verbatim: String(d.y))).text())
+            note(AppMessage("Requested ID=%@ origin=(%@,%@)", AppMessage(verbatim: String(d.id)), AppMessage(verbatim: String(d.x)), AppMessage(verbatim: String(d.y))).text())
             try check(CGConfigureDisplayOrigin(config, d.id, d.x, d.y), "CGConfigureDisplayOrigin/\(d.id)")
         }
         let result = CGCompleteDisplayConfiguration(config, .forSession)
@@ -209,13 +209,13 @@ final class DisplayManager: ObservableObject {
             try await Task.sleep(nanoseconds: 200_000_000)
             displays = try read()
             if result == .success && displays.sorted(by: { $0.id < $1.id }) == desired.sorted(by: { $0.id < $1.id }) {
-                note(L("重新读取确认：实际布局与请求一致。"))
+                note(L("Verified: the actual layout matches the requested layout."))
                 return
             }
         }
         refresh()
         try check(result, "CGCompleteDisplayConfiguration")
-        throw PrototypeError("系统实际布局与请求不一致或屏幕状态改变；请刷新屏幕并重新应用。")
+        throw PrototypeError("The actual layout differs from the request, or the displays changed. Refresh and apply again.")
     }
 }
 

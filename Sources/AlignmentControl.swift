@@ -61,8 +61,8 @@ struct AlignmentControl: View {
                         }.frame(width: 28, height: 28)
                     }
                     .buttonStyle(.plain)
-                    .help(L("应用排列"))
-                    .accessibilityLabel(L("应用排列"))
+                    .help(L("Apply Layout"))
+                    .accessibilityLabel(L("Apply Layout"))
                     .disabled(manager.busy)
                     .padding(8)
                 }
@@ -75,7 +75,7 @@ struct AlignmentControl: View {
                         }
                     }
                 } label: {
-                    Text(manager.showingActualPosition ? L("当前位置") : manager.selection.title)
+                    Text(manager.showingActualPosition ? L("Current Position") : manager.selection.title)
                         .font(.caption.weight(.medium))
                 }
                 .menuStyle(.borderlessButton)
@@ -169,9 +169,9 @@ struct AlignmentControl: View {
                             previewCenter = destination
                         }
                     })
-                .accessibilityLabel(L("移动屏幕排列"))
-                .accessibilityValue(manager.showingActualPosition ? L("当前位置，未匹配固定对齐") : selected.title)
-                .accessibilityHint(showsPositionMenu ? L("拖动选择位置，也可通过下方菜单选择对齐方式。") : L("拖动选择位置，使用应用排列按钮确认修改。"))
+                .accessibilityLabel(L("Display Arrangement"))
+                .accessibilityValue(manager.showingActualPosition ? L("Current position does not match a preset alignment") : selected.title)
+                .accessibilityHint(showsPositionMenu ? L("Drag to choose a position, or choose an alignment from the menu below.") : L("Drag to choose a position, then use Apply Layout to confirm."))
                 .accessibilityAdjustableAction { adjustment in
                     guard !manager.busy, let index = AlignmentOption.all.firstIndex(of: selected) else { return }
                     let step = adjustment == .increment ? 1 : -1

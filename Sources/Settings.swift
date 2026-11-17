@@ -40,7 +40,7 @@ final class SettingsManager: ObservableObject {
             if enabled { try SMAppService.mainApp.register() }
             else { try await SMAppService.mainApp.unregister() }
         } catch {
-            errorMessage = AppMessage("无法修改开机自启：%@", AppMessage(error: error))
+            errorMessage = AppMessage("Could not change launch at login: %@", AppMessage(error: error))
         }
     }
 }
@@ -52,47 +52,47 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Picker(L("语言"), selection: $settings.language) {
+                Picker(L("Language"), selection: $settings.language) {
                     ForEach(AppLanguage.allCases, id: \.self) { language in
                         Text(language.name).tag(language)
                     }
                 }
                 Divider()
-                Toggle(L("仅连接扩展屏时显示菜单栏图标"), isOn: $settings.menuOnlyWithSecondScreen)
+                Toggle(L("Show menu icon only with multiple displays"), isOn: $settings.menuOnlyWithSecondScreen)
                     .toggleStyle(.switch)
-                Text(L("没有可用扩展屏时隐藏图标，应用继续运行。重新打开 DisplayTidy 可进入主界面和设置。"))
+                Text(L("Hide the icon when only one display is available. DisplayTidy keeps running. Open the app again to access the main window and settings."))
                     .font(.caption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Divider()
-                Toggle(L("隐藏刘海（实验性）"), isOn: $settings.hideNotch)
+                Toggle(L("Hide notch (experimental)"), isOn: $settings.hideNotch)
                     .toggleStyle(.switch)
-                Text(L("为带刘海的内建屏幕添加黑色菜单栏背景，不修改壁纸。效果取决于系统菜单栏背景及文字颜色；若显示异常，请关闭。"))
+                Text(L("Adds a black menu bar background to the built-in display with a notch without changing your wallpaper. Results depend on the system menu bar background and text color; turn this off if it looks incorrect."))
                     .font(.caption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Divider()
-                Toggle(L("开机自启"), isOn: Binding(
+                Toggle(L("Launch at Login"), isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { value in Task { await settings.setLaunchAtLogin(value) } }
                 ))
                 .toggleStyle(.switch)
                 .disabled(settings.updating)
-                Text(L("登录 Mac 后自动启动，在菜单栏运行。"))
+                Text(L("Start DisplayTidy in the menu bar when you log in to your Mac."))
                     .font(.caption).foregroundColor(.secondary)
                 if settings.loginStatus == .requiresApproval {
-                    Text(L("等待系统允许，请在登录项设置中启用 DisplayTidy。"))
+                    Text(L("Approval required. Enable DisplayTidy in Login Items settings."))
                         .font(.caption).foregroundColor(.secondary)
                 }
                 if let error = settings.errorMessage {
                     Text(error.text()).font(.caption).foregroundColor(.red)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Button(L("打开系统登录项设置")) { SMAppService.openSystemSettingsLoginItems() }
+                Button(L("Open Login Items Settings")) { SMAppService.openSystemSettingsLoginItems() }
                 Divider()
-                Button(L("查看日志"), action: openLog)
+                Button(L("View Log"), action: openLog)
             }
             .padding(20).frame(maxWidth: .infinity, alignment: .topLeading)
         }.frame(minWidth: 360, minHeight: 260)
-        .navigationTitle(L("DisplayTidy 设置"))
+        .navigationTitle(L("DisplayTidy Settings"))
         .onAppear { settings.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             settings.refresh()
@@ -105,7 +105,7 @@ struct LogView: View {
 
     var body: some View {
         ScrollView {
-            Text(manager.log.isEmpty ? L("暂无日志") : manager.log)
+            Text(manager.log.isEmpty ? L("No log entries yet") : manager.log)
                 .font(.system(size: 11, design: .monospaced))
                 .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
