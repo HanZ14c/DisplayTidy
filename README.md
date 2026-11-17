@@ -76,15 +76,13 @@ build/DisplayTidy.app/Contents/MacOS/DisplayTidy --move-below-right DISPLAY_ID
 open build/DisplayTidy-Sandbox.app
 ```
 
-此构建仅增加 `com.apple.security.app-sandbox` entitlement，没有辅助功能、录屏或管理员权限请求代码。排列关系写入该 bundle 的容器 Application Support；两个版本的设置独立。macOS 是否要求权限以实际运行结果为准；当前设备上的验证见 [M0 验证记录](docs/M0-VALIDATION.md)，不能推断所有系统都一致。
-
-项目范围见 [PROJECT.md](docs/PROJECT.md)，阶段验收见 [MILESTONES.md](docs/MILESTONES.md)。
+此构建仅增加 `com.apple.security.app-sandbox` entitlement，没有辅助功能、录屏或管理员权限请求代码。排列关系写入该 bundle 的容器 Application Support；两个版本的设置独立。macOS 是否要求权限以实际运行结果为准；实际兼容性仍需在目标系统验证。
 
 ## 本地文件位置
 
 持续更新同一个 `build/DisplayTidy.app`，应用名称和 bundle identifier 不随开发阶段变化。M0、M1 等编号仅用于开发与历史验证文档。
 
-- `Sources/`、`Resources/`、`scripts/`、`docs/`：源代码、中英文翻译、构建脚本和开发文档。
+- `Sources/`、`Resources/`、`scripts/`：源代码、中英文翻译和构建脚本。
 - `build/DisplayTidy.app`：日常使用的应用；`build/DisplayTidy-Sandbox.app`：可选的隔离环境对照构建，不是另一个开发阶段。
 - `.build/module-cache/`：编译缓存，可重新生成。
 - `~/Library/Application Support/local.DisplayTidy/`：普通版数据，当前读取 `arrangement.json`；历史 `recovery.json` 和 `RecoveryArchive/` 保留，不参与操作。原普通版目录已在本机迁移，保留全部文件。

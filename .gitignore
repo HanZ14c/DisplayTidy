@@ -1,3 +1,15 @@
+# Generated builds and macOS metadata
 .build/
 build/
 .DS_Store
+
+# Internal planning and device-specific validation (keep locally)
+/docs/PROJECT.md
+/docs/MILESTONES.md
+/docs/M0-VALIDATION.md
+/local/
+
+# Local assistant configuration and discussion notes
+/.codex/
+/.agents/
+/AGENTS.md
