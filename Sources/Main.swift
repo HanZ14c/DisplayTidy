@@ -73,15 +73,25 @@ struct MainView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     GroupBox {
                         VStack(alignment: .leading, spacing: 14) {
-                            Picker(L("Reference"), selection: $manager.reference) {
-                                ForEach(manager.displays) { d in
-                                    Text("\(d.name) · \(d.width) × \(d.height)").tag(d.id)
+                            HStack {
+                                Text(L("Reference"))
+                                Spacer()
+                                Picker(L("Reference"), selection: $manager.reference) {
+                                    ForEach(manager.displays) { d in
+                                        Text("\(d.name) · \(d.width) × \(d.height)").tag(d.id)
+                                    }
                                 }
+                                .labelsHidden()
                             }
-                            Picker(L("Move"), selection: $manager.target) {
-                                ForEach(manager.displays.filter { $0.id != manager.reference }.sorted { $0.id < $1.id }) { d in
-                                    Text("\(d.name) · \(d.width) × \(d.height)").tag(d.id)
+                            HStack {
+                                Text(L("Move"))
+                                Spacer()
+                                Picker(L("Move"), selection: $manager.target) {
+                                    ForEach(manager.displays.filter { $0.id != manager.reference }.sorted { $0.id < $1.id }) { d in
+                                        Text("\(d.name) · \(d.width) × \(d.height)").tag(d.id)
+                                    }
                                 }
+                                .labelsHidden()
                             }
                             Divider()
                             AlignmentControl(manager: manager, showsPositionMenu: true).frame(maxWidth: .infinity)
@@ -118,15 +128,25 @@ struct QuickPanel: View {
                 }.help(L("Refresh Displays")).accessibilityLabel(L("Refresh Displays"))
                     .disabled(manager.busy)
             }
-            Picker(L("Reference"), selection: $manager.reference) {
-                ForEach(manager.displays) { display in
-                    Text(display.name).tag(display.id)
+            HStack {
+                Text(L("Reference"))
+                Spacer()
+                Picker(L("Reference"), selection: $manager.reference) {
+                    ForEach(manager.displays) { display in
+                        Text(display.name).tag(display.id)
+                    }
                 }
+                .labelsHidden()
             }.disabled(manager.busy)
-            Picker(L("Move"), selection: $manager.target) {
-                ForEach(manager.displays.filter { $0.id != manager.reference }.sorted { $0.id < $1.id }) { display in
-                    Text(display.name).tag(display.id)
+            HStack {
+                Text(L("Move"))
+                Spacer()
+                Picker(L("Move"), selection: $manager.target) {
+                    ForEach(manager.displays.filter { $0.id != manager.reference }.sorted { $0.id < $1.id }) { display in
+                        Text(display.name).tag(display.id)
+                    }
                 }
+                .labelsHidden()
             }.disabled(manager.busy)
             AlignmentControl(manager: manager)
             if let error = manager.errorMessage {
@@ -180,9 +200,9 @@ final class AppWindows: NSObject, ObservableObject, NSWindowDelegate {
         // Only dismiss the menu panel; keep the main window visible.
         if NSApp.keyWindow?.title.isEmpty == true { NSApp.keyWindow?.orderOut(nil) }
         settings.refresh()
-        show(&settingsWindow, title: "DisplayTidy Settings", size: NSSize(width: 420, height: 380),
+        show(&settingsWindow, title: "DisplayTidy Settings", size: NSSize(width: 420, height: 640),
              content: SettingsView(settings: settings, openLog: { self.openLog(manager: manager) }))
-        settingsWindow?.contentMinSize = NSSize(width: 360, height: 260)
+        settingsWindow?.contentMinSize = NSSize(width: 360, height: 640)
     }
 
     func openLog(manager: DisplayManager) {

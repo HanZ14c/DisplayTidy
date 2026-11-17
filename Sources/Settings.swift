@@ -52,28 +52,39 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Picker(L("Language"), selection: $settings.language) {
-                    ForEach(AppLanguage.allCases, id: \.self) { language in
-                        Text(language.name).tag(language)
+                HStack {
+                    Text(L("Language"))
+                    Spacer()
+                    Picker(L("Language"), selection: $settings.language) {
+                        ForEach(AppLanguage.allCases, id: \.self) { language in
+                            Text(language.name).tag(language)
+                        }
                     }
+                    .labelsHidden()
                 }
                 Divider()
-                Toggle(L("Show menu icon only with multiple displays"), isOn: $settings.menuOnlyWithSecondScreen)
+                Toggle(isOn: $settings.menuOnlyWithSecondScreen) {
+                    Text(L("Show menu icon only with multiple displays")).frame(maxWidth: .infinity, alignment: .leading)
+                }
                     .toggleStyle(.switch)
                 Text(L("Hide the icon when only one display is available. DisplayTidy keeps running. Open the app again to access the main window and settings."))
                     .font(.caption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Divider()
-                Toggle(L("Hide notch (experimental)"), isOn: $settings.hideNotch)
+                Toggle(isOn: $settings.hideNotch) {
+                    Text(L("Hide notch (experimental)")).frame(maxWidth: .infinity, alignment: .leading)
+                }
                     .toggleStyle(.switch)
                 Text(L("Adds a black menu bar background to the built-in display with a notch without changing your wallpaper. Results depend on the system menu bar background and text color; turn this off if it looks incorrect."))
                     .font(.caption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Divider()
-                Toggle(L("Launch at Login"), isOn: Binding(
+                Toggle(isOn: Binding(
                     get: { settings.launchAtLogin },
                     set: { value in Task { await settings.setLaunchAtLogin(value) } }
-                ))
+                )) {
+                    Text(L("Launch at Login")).frame(maxWidth: .infinity, alignment: .leading)
+                }
                 .toggleStyle(.switch)
                 .disabled(settings.updating)
                 Text(L("Start DisplayTidy in the menu bar when you log in to your Mac."))
@@ -91,7 +102,7 @@ struct SettingsView: View {
                 Button(L("View Log"), action: openLog)
             }
             .padding(20).frame(maxWidth: .infinity, alignment: .topLeading)
-        }.frame(minWidth: 360, minHeight: 260)
+        }.frame(minWidth: 360, minHeight: 640)
         .navigationTitle(L("DisplayTidy Settings"))
         .onAppear { settings.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in

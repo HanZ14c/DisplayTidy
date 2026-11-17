@@ -1,4 +1,8 @@
-# DisplayTidy
+<p align="center">
+  <img src="Resources/AppIcon.png" alt="DisplayTidy app icon" width="128" height="128">
+</p>
+
+<h1 align="center">DisplayTidy</h1>
 
 A native macOS menu bar utility for arranging displays. Choose a reference display and a display to move, select one of 12 alignments, and apply the layout. DisplayTidy remembers the last applied relationship and provides a draggable two-display preview.
 
